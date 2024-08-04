@@ -10,6 +10,14 @@ Current count of how many discs are out.
     background-color: antiquewhite;
 }
 
+.challengeDisplayText{
+    font-size: 20px;
+}
+
+.challengeDisplay{
+    font-size: 20px;
+}
+
 /* Where all the player's discs and player mats will be displayed */
 .game-display{
     height: 400px;
@@ -31,6 +39,12 @@ Current count of how many discs are out.
     gap: 0px;
     width: 60%;
 }    
+
+.passButton{
+    width: 100px;
+    background-color: brown;
+    color:rgb(19, 204, 111);
+}
 
 
 .table-display-player{
@@ -57,6 +71,10 @@ Current count of how many discs are out.
     border-radius: 50%;
     width: var(--disc-diameter);
     height: var(--disc-diameter);
+}
+
+.revealed {
+    border: 7px solid gold;
 }
 
 .skull{
