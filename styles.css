@@ -1,18 +1,70 @@
-
+:root{
+    --disc-diameter: 50px;
+}
 /* Displays: 
 The Name and Logo of the game
 Current count of how many discs are out.
 */
 .header{
-
+    height: 200px;
+    background-color: antiquewhite;
 }
 
 /* Where all the player's discs and player mats will be displayed */
 .game-display{
-
+    height: 400px;
+    background-color: rgb(223, 214, 203);
 }
 
 /* The secret contents of the player's hand*/
-.footer{
+.player-display-section{
+    height: 300px;
+    background-color: rgb(142, 211, 128);
+}
 
+.player-display{
+    display: grid;
+ 
+    grid-auto-flow: column;
+    grid-auto-columns: 90px;
+    grid-template-rows: auto;
+    gap: 0px;
+    width: 60%;
+}    
+
+
+.table-display-player{
+    display: flex;
+    gap: 10px;
+}
+
+.table-display-player-name{
+    
+}
+
+.table-display-player-mat{
+    position:relative;
+    border: 1px solid rgb(182, 126, 22);
+    width: 200px;
+}
+
+.table-display-player-hand{
+  
+}
+
+
+.disc{
+    border-radius: 50%;
+    width: var(--disc-diameter);
+    height: var(--disc-diameter);
+}
+
+.skull{
+    background-color: black;
+    color: yellow;
+}
+
+.flower{
+    background-color: rgb(19, 204, 111);
+    color: rgb(151, 29, 155);
 }
