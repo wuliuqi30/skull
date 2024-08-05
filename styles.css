@@ -1,5 +1,6 @@
 :root{
-    --disc-diameter: 50px;
+    --disc-diameter-player-display: 150px;
+    --disc-diameter-game-display: 50px;
 }
 /* Displays: 
 The Name and Logo of the game
@@ -8,6 +9,10 @@ Current count of how many discs are out.
 .header{
     height: 200px;
     background-color: antiquewhite;
+}
+
+#headerDisplayText{
+    font-size: 28px;
 }
 
 .challengeDisplayText{
@@ -34,7 +39,7 @@ Current count of how many discs are out.
     display: grid;
  
     grid-auto-flow: column;
-    grid-auto-columns: 90px;
+    grid-auto-columns: var(--disc-diameter-player-display);
     grid-template-rows: auto;
     gap: 0px;
     width: 60%;
@@ -67,11 +72,20 @@ Current count of how many discs are out.
 }
 
 
-.disc{
+.player-display-section .disc{
     border-radius: 50%;
-    width: var(--disc-diameter);
-    height: var(--disc-diameter);
+    width: var(--disc-diameter-player-display);
+    height: var(--disc-diameter-player-display);
 }
+
+
+.game-display .disc{
+    border-radius: 50%;
+    width: var(--disc-diameter-game-display);
+    height: var(--disc-diameter-game-display);
+}
+
+
 
 .revealed {
     border: 7px solid gold;

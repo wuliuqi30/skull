@@ -15,38 +15,48 @@ const phases = {
 //  players: a list of player objects representing the players
 //  turn: which player whose turn it is.
 let game = {
-    players: [],  // an array of all the player objects
-    remainingPlayers: [], // an array of all players not ejected yet from the game
+    allPlayers: [],  // an array of all the player objects. Players are never removed from this. If a player loses all his discs, merely properties on the player object are altered. 
     numPlayers: 0,
-    numRemainingPlayers: 0,
-
-    currentPlayerturn: 0,  // an integer representing whose turn it is. 1-indexed
-    totalDiscsPlayed: 0, // total number of turns taken so far
-    phase: "placingDiscs",
-
-    challenge: 0,  // Current bid. Number of flowers the challenger says they can flip
-    challengePlayer: null, // Current player with the bid
-
-    numPlayersNotPassed: 0, // Number of players who HAVE NOT passed and still in the round
-
-    numFlowersRevealed: 0, // Number of flowers the challenger has validly flipped over
-    skullRevealed: false,
-    winner: null,
-    incrementTurn() {
-        this.currentPlayerturn = (this.currentPlayerturn + 1) % this.numPlayers;
-    }
-
+    round: null,
 }
 
 
+function Round() {
+    this.numPlayers = 0;
+    this.players = [];
+    this.playerTurnList = []; // an array holding the player IDs of all the players in this round, in ascedning order. Could be 1, 4, 5 if players 2 and 3 were eliminated.
+    this.currentPlayerTurnId = 0;  // the player ID of the current player whose turn it is/will be next.
+    this.currentPlayerTurnCounter = 0; // always goes from 0 to numplayers - 1
+    this.totalDiscsPlayed = 0; // total number of turns taken so far
+    this.phase = "placingDiscs";
+    this.challenge = 0;  // Current bid. Number of flowers the challenger says they can flip
+    this.challengePlayer = null; // Current player with the bid
 
-// Player Object: 
-// fields: 
-//     name: 
-//     design: the design style of the disc 
-//     hand: array, an array of the cards in your hand. 
-//     mat: boolean, can be 0 (unflipped) or flipped (1)
-//     mat-cards: array, the cards on the mat, [0] being on the bottom, the higher numbers on top
+    this.numPlayersNotPassed = 0; // Number of players who HAVE NOT passed and still in the round
+
+    this.numFlowersRevealed = 0; // Number of flowers the challenger has validly flipped over
+    this.skullRevealed = false;
+    this.winner = null;
+    this.incrementTurn = function () {
+        this.currentPlayerTurnCounter = (this.currentPlayerTurnCounter + 1) % this.numPlayers;
+        this.currentPlayerTurnId = this.playerTurnList[this.currentPlayerTurnCounter];
+        return this.currentPlayerTurnId;
+    };
+    this.resetPlayers = function () {
+        for (let i = 0; i < this.players.length; i++) {
+            this.players[i].resetHand();
+            this.players[i].mat = [];
+            this.players[i].pass = false;
+            
+        }
+    }
+    this.resetTurnList = function () {
+        for (let p = 0; p < this.numPlayers; p++) {
+            this.playerTurnList[p] = this.players[p].id;
+        }
+    }
+}
+
 
 function Disc(type, id) {
     // type is skull or flower
@@ -60,8 +70,8 @@ function Disc(type, id) {
 }
 
 
-function Player(number, name, design) {
-    this.number = number;
+function Player(id, name, design) {
+    this.id = id;
     this.name = name;
     this.design = design;
     this.hand = [];
@@ -69,6 +79,8 @@ function Player(number, name, design) {
     this.mat = [];
     this.matFlipped = 0;
     this.pass = false;
+    this.numOwnDiscsRevealed = 0;
+    this.revealedAllOwnDiscs = false;
     this.ejected = false; // Player has been ejected from the game from running out of discs
     this.initializeAllDiscs = function () {
         for (let i = 0; i <= 2; i++) {
@@ -77,10 +89,10 @@ function Player(number, name, design) {
         }
         let disc = new Disc(SKULL, 3);
         this.allDiscs.push(disc);
-        this.hand = this.allDiscs;
+        this.resetHand();
     }
-    this.resetHand = function(){
-        this.hand = this.allDiscs;
+    this.resetHand = function () {
+        this.hand = [...this.allDiscs];
     }
     this.discardRandomDisc = function () {
         let randomIndex = getRandomInteger(this.allDiscs.length);
@@ -100,9 +112,11 @@ function getRandomInteger(n) {
     return Math.floor(Math.random() * (n - 1));
 }
 
-function chooseFirstPlayer(n) {
+function chooseFirstPlayerId(n) {
     // Choose first player code here: 
-    game.currentPlayerturn = getRandomInteger(n);
+    // return game.round.players[getRandomInteger(n)].id;
+    // HARD CODE TO 0 for now
+    return game.round.players[2].id;
 
 }
 
@@ -131,38 +145,85 @@ numPlayersSelect.addEventListener("click", (event) => {
     console.log("Clicked number of players Selection");
     initializeGame(numPlayersSelect.value);
     numPlayersSelect.disabled = true;
-})
-// A button along with a text box where you input the number then click "start game" which runs the initializeGame code below
+});
 
-
-
-
-
-
-function initializeGame(numPlayers) {
-    // Create the players and put them in the game object
-    game.numPlayers = numPlayers;
-    game.numPlayersNotPassed = numPlayers;
-    // Make the players
-    for (let i = 0; i < numPlayers; i++) {
-        game.players[i] = new Player(i, `Player ${i}`, "design");
-        game.players[i].initializeAllDiscs();
-        console.log(`Making player ${i} : ${game.players[i]}`);
-    }
-
-    // Set Up the player display for the first player: 
-    setUpPlayerDisplay(chooseFirstPlayer(numPlayers));
-    refreshGameDisplay();
+function resetChooseNumPlayers() {
+    numPlayersSelect.disabled = false;
+    
 }
 
 
-function setUpPlayerDisplay() {
-    let player = game.players[game.currentPlayerturn];
+function initializeGame(numPlayers) {
+
+    const headerDisplayText = document.getElementById("headerDisplayText");
+    headerDisplayText.textContent = '';
+    
+    // Create the players and put them in the game object
+    game.numPlayers = numPlayers;
+
+    // Make the players for the entire game
+    for (let i = 0; i < numPlayers; i++) {
+        game.allPlayers[i] = new Player(i, `Player ${i + 1}`, "design");
+        game.allPlayers[i].initializeAllDiscs();
+        console.log(`Making player ${i} : ${game.allPlayers[i]}`);
+    }
+
+    // Setup the players for the first round:
+
+    resetForNewRound(true);
+}
+
+
+function resetForNewRound(firstRound) {
+
+    const lastRound = game.round;
+    game.round = new Round();
+    let startPlayer;
+
+    // Put all players who are not "ejected" into the players for this round:
+    if (!firstRound) {
+        const newPLayers = lastRound.players.reduce(function (accumulator, player) {
+            if (!player.ejected) {
+                accumulator = [...accumulator, player];
+            }
+            return accumulator;
+        }, [])
+        game.round.players = [...newPLayers];
+        game.round.currentPlayerTurnId =
+            lastRound.challengePlayer.ejected === true ? chooseFirstPlayerId(game.round.players.length) : lastRound.challengePlayer.id;
+    } else // If its the first round, the players for this round are just the original players
+    {
+        game.round.players = [...game.allPlayers];
+        game.round.currentPlayerTurnId = chooseFirstPlayerId(game.round.players.length)
+
+    }
+
+    game.round.numPlayers = game.round.players.length;
+    game.round.numPlayersNotPassed = game.round.numPlayers;
+
+    game.round.resetPlayers();
+    game.round.resetTurnList();
+
+    game.round.currentPlayerTurnCounter = getIndexFromPlayerId(game.round.currentPlayerTurnId);
+
+    loadPlayerControls(game.round.currentPlayerTurnId);
+    refreshGameDisplay();
+
+
+}
+
+function getIndexFromPlayerId(pId) {
+    return game.round.playerTurnList.indexOf(pId);
+
+}
+
+
+function loadPlayerControls(pId) {
+    let player = game.round.players[getIndexFromPlayerId(pId)];
     // If this player has passed, skip their turn and move to the next turn: 
     if (player.pass) {
-        console.log(`${player.name} has already passed, skipping`)
-        game.incrementTurn();
-        setUpPlayerDisplay();
+        console.log(`${player.name} has already passed, skipping`);
+        loadPlayerControls(game.round.incrementTurn());
     }
 
     // Based on the discs the player currently has, create
@@ -175,7 +236,7 @@ function setUpPlayerDisplay() {
         discDOM.classList.add("disc", player.hand[i].type);
         discDOM.textContent = player.hand[i].type;
         discDOM.setAttribute("value", player.hand[i].id);
-        if (game.phase === phases.placingDiscs) {
+        if (game.round.phase === phases.placingDiscs) {
             discDOM.addEventListener("click", () => {
                 // Put this on the mat and remove it from the hand.
                 const discId = discDOM.value;
@@ -190,9 +251,8 @@ function setUpPlayerDisplay() {
                     refreshGameDisplay();
 
                     // Now its the next player's turn: 
-                    game.totalDiscsPlayed++;
-                    game.incrementTurn();
-                    setUpPlayerDisplay();
+                    game.round.totalDiscsPlayed++;
+                    loadPlayerControls(game.round.incrementTurn());
                 }
 
             })
@@ -203,7 +263,7 @@ function setUpPlayerDisplay() {
     playerDisplaySection.appendChild(playerDisplayDOM);
 
 
-    if ((game.phase === phases.placingDiscs) && game.totalDiscsPlayed >= game.numPlayers) {
+    if ((game.round.phase === phases.placingDiscs) && game.round.totalDiscsPlayed >= game.round.numPlayers) {
         // Add another box/button for making a bid.
         const startChallengeLabel = document.createElement("label");
         startChallengeLabel.setAttribute("for", "startChallenge");
@@ -215,7 +275,7 @@ function setUpPlayerDisplay() {
         startChallengeSelect.setAttribute("id", "startChallenge");
         playerDisplaySection.appendChild(startChallengeSelect);
 
-        for (let c = (player.mat.length + 1); c <= game.totalDiscsPlayed; c++) {
+        for (let c = (player.mat.length + 1); c <= game.round.totalDiscsPlayed; c++) {
             const op = document.createElement("option");
             op.setAttribute("value", c);
             op.textContent = `${c}`;
@@ -224,37 +284,30 @@ function setUpPlayerDisplay() {
 
 
         startChallengeSelect.addEventListener("click", (event) => {
-            game.challenge = Number(startChallengeSelect.value);
-            game.challengePlayer = player;
+            game.round.challenge = Number(startChallengeSelect.value);
+            game.round.challengePlayer = player;
 
-            console.log(`Starting bid with ${game.challenge}`);
-            const challengeDisplayText = document.createElement("p");
-            challengeDisplayText.textContent = `Current Challenge by player ${player.name}:`
-            challengeDisplayText.setAttribute("id", "challengeDisplayText");
+            console.log(`Starting bid with ${game.round.challenge}`);
+            const headerDisplayText = document.getElementById("headerDisplayText");
+            headerDisplayText.textContent = `Current Challenge by player ${player.name}, bid is at ${startChallengeSelect.value}`
+            header.appendChild(headerDisplayText);
 
-            const challengeDisplay = document.createElement("p");
-            challengeDisplay.setAttribute("id", "challengeDisplay")
 
-            challengeDisplay.textContent = startChallengeSelect.value;
-            header.appendChild(challengeDisplayText);
-            header.appendChild(challengeDisplay);
+            if (startChallengeSelect.value < game.round.totalDiscsPlayed) {
+                game.round.phase = phases.makingBids;
 
-            if (startChallengeSelect.value < game.totalDiscsPlayed) {
-                game.phase = phases.makingBids;
-
-                game.incrementTurn();
-                setUpPlayerDisplay(); // Next Player
+                loadPlayerControls(game.round.incrementTurn()); // Next Player
             } else {
-                game.phase = phases.executingChallenge; // No more players take turns, now we enter the flipping over cards to win phase.
-                setUpPlayerDisplay(); // Move to next player without incrementing turn, the same player will start their turn. 
+                game.round.phase = phases.executingChallenge; // No more players take turns, now we enter the flipping over cards to win phase.
+                loadPlayerControls(game.round.currentPlayerTurnId); // Move to next player without incrementing turn, the same player will start their turn. 
             }
         })
     }
 
-    if (game.phase === phases.makingBids) {
+    if (game.round.phase === phases.makingBids) {
 
 
-        // add  box/button for raising the bid.
+        // Create Input for raising the bid:
         const raiseChallengeLabel = document.createElement("label");
         raiseChallengeLabel.setAttribute("for", "raiseChallenge");
         raiseChallengeLabel.textContent = "Raise the bid?";
@@ -265,34 +318,33 @@ function setUpPlayerDisplay() {
         raiseChallengeSelect.setAttribute("id", "raiseChallenge");
         playerDisplaySection.appendChild(raiseChallengeSelect);
 
-        for (let c = (game.challenge + 1); c <= game.totalDiscsPlayed; c++) {
+        // Drop-down for choosing how high to raise the bid.
+        for (let c = (game.round.challenge + 1); c <= game.round.totalDiscsPlayed; c++) {
             const op = document.createElement("option");
             op.setAttribute("value", c);
             op.textContent = `${c}`;
             raiseChallengeSelect.appendChild(op);
         }
 
-
         raiseChallengeSelect.addEventListener("click", (event) => {
-            game.challenge = Number(raiseChallengeSelect.value);
-            game.challengePlayer = player;
-            console.log(`Raising bid with ${game.challenge}`);
-            const challengeDisplayText = document.getElementById("challengeDisplayText")
-            challengeDisplayText.textContent = `${player.name} raised challenge to:`
-            const challengeDisplay = document.getElementById("challengeDisplay")
-            challengeDisplay.textContent = raiseChallengeSelect.value;
+            game.round.challenge = Number(raiseChallengeSelect.value);
+            game.round.challengePlayer = player;
+            console.log(`Raising bid with ${game.round.challenge}`);
+            const headerDisplayText = document.getElementById("headerDisplayText")
+            headerDisplayText.textContent = `${player.name} raised challenge to: ${raiseChallengeSelect.value}`;
 
-            if (game.challenge < game.totalDiscsPlayed) {
+            if (game.round.challenge < game.round.totalDiscsPlayed) {
 
-                game.incrementTurn();
-                setUpPlayerDisplay(); // Next Player
+
+                loadPlayerControls(game.round.incrementTurn()); // Next Player
             } else {
-                game.phase = phases.executingChallenge; // No more players take turns, now we enter the flipping over cards to win phase.
-                setUpPlayerDisplay(); // Move to next player without incrementing turn, the same player will start their turn. 
+                game.round.phase = phases.executingChallenge; // No more players take turns, now we enter the flipping over cards to win phase.
+                loadPlayerControls(game.round.currentPlayerTurnId); // Move to next player without incrementing turn, the same player will start their turn. 
             }
         })
 
-        // Pass option:
+        // Alternatively, the player can pass:
+        // Create a button to pass: 
         const passButton = document.createElement("button");
         passButton.textContent = "Pass";
         playerDisplaySection.appendChild(passButton);
@@ -300,31 +352,29 @@ function setUpPlayerDisplay() {
         passButton.addEventListener("click", (event) => {
             // If they pass:
             player.pass = true;
-            game.numPlayersNotPassed--;
-            const playerName = document.querySelector(`#p${player.number} .table-display-player-name`);
-            playerName.textContent = `${player.name} (passed)`;
-
-            if (game.numPlayersNotPassed > 1) {
-                game.incrementTurn();
-                setUpPlayerDisplay();
+            game.round.numPlayersNotPassed--;
+            // const playerName = document.querySelector(`#p${player.id} .table-display-player-name`);
+            // playerName.textContent = `${player.name} (passed)`;
+            refreshGameDisplay();
+            if (game.round.numPlayersNotPassed > 1) {
+                loadPlayerControls(game.round.incrementTurn());
             } else {
-                game.phase = phases.executingChallenge;
-                // Automatically set the turn to the challenger
+                game.round.phase = phases.executingChallenge;
 
-                // FIX THIS: But we dont update the game display properly
-                refreshGameDisplay()
-                game.currentPlayerturn = game.challengePlayer.number;
-                setUpPlayerDisplay();
+
+                game.round.currentPlayerTurnId = game.round.challengePlayer.id;
+                loadPlayerControls(game.round.currentPlayerTurnId);
 
             }
         })
 
     }
 
-    if (game.phase === phases.executingChallenge) {
 
-        const challengeDisplayText = document.getElementById("challengeDisplay");
-        challengeDisplayText.textContent = `${player.name} is now executing the challenge, he/she must flip over ${game.challenge} flower cards!`;
+    if (game.round.phase === phases.executingChallenge) {
+
+        const headerDisplayText = document.getElementById("headerDisplayText");
+        headerDisplayText.textContent = `${player.name} is now executing the challenge, he/she must flip over ${game.round.challenge} flower cards!`;
 
     }
 
@@ -340,12 +390,12 @@ function refreshGameDisplay() {
     // [Player Name] [Player Mat] [text box of cards in hand]
     // But only if that player has discs left in their hand.
 
-    for (let i = 0; i < game.numPlayers; i++) {
-        let displayPlayer = game.players[i];
+    for (let i = 0; i < game.round.numPlayers; i++) {
+        let displayPlayer = game.round.players[i];
 
         if (displayPlayer.hand) {
             // If hand is not empty:
-            placePlayerIntoGameDisplay(game.players[i]);
+            placePlayerIntoGameDisplay(game.round.players[i]);
         }
     }
 }
@@ -358,14 +408,25 @@ function deleteGameDisplay() {
     }
 }
 
+function deleteHeader() {
+    let child = header.lastElementChild;
+    while (child) {
+        header.removeChild(child);
+        child = header.lastElementChild;
+    }
+}
+
 function placePlayerIntoGameDisplay(player) {
     const tableDisplayPlayer = document.createElement("div");
     tableDisplayPlayer.classList.add("table-display-player");
-    tableDisplayPlayer.setAttribute("id", `p${player.number}`);
+    tableDisplayPlayer.setAttribute("id", `p${player.id}`);
     gameDisplay.appendChild(tableDisplayPlayer);
 
     const playerName = document.createElement("p");
     playerName.textContent = player.name;
+    if (player.pass) {
+        playerName.textContent += `(passed)`;
+    }
     playerName.classList.add("table-display-player-name");
     tableDisplayPlayer.appendChild(playerName);
 
@@ -385,7 +446,7 @@ function placePlayerIntoGameDisplay(player) {
         //Place discs on mat
         const discOverlap = 0.5;
         matDisc.style.position = "absolute";
-        matDisc.setAttribute("value", player.mat[d].id);
+        matDisc.setAttribute("value", player.id);
         matDisc.style.left = `${(d * discOverlap * discSize)}px`;
 
         // Put event listeners on these discs but they'll do nothing until the final stage: 
@@ -393,40 +454,55 @@ function placePlayerIntoGameDisplay(player) {
         matDisc.addEventListener("click", (event) => {
 
             // Must be in the executing challenge phase AND it must be a skull that hasn't been clicked, and it mustbe on the top.
+            const headerDisplayText = document.getElementById("headerDisplayText");
 
-            if ((game.phase === phases.executingChallenge) 
-            && ( (matDisc.nextElementSibling === null) || (matDisc.nextElementSibling.classList.contains("revealed")) ) 
-        && !matDisc.classList.contains("revealed")) {
+            if ((game.round.phase === phases.executingChallenge)
+                && ((matDisc.nextElementSibling === null) || (matDisc.nextElementSibling.classList.contains("revealed")))
+                && !matDisc.classList.contains("revealed")) {
+
+
                 // When you click it, add a "revealed" class to it and that will apply the appropriate styling
-                const challengeDisplayText = document.getElementById("challengeDisplayText")
+                let clickingPlayer = game.round.challengePlayer;
+
+                // Now check to make sure that you've already flipped all your own discs.
+                if ((clickingPlayer.id !== Number(matDisc.value)) &&
+                    (clickingPlayer.numOwnDiscsRevealed < clickingPlayer.mat.length)) {
+                    headerDisplayText.textContent = "Oops, you have to flip all your own first!!";
+                    return; // exit function
+                } else if (clickingPlayer.id === Number(matDisc.value)) {
+                    clickingPlayer.numOwnDiscsRevealed++;
+                }
 
 
                 matDisc.classList.add("revealed");
 
-                // If skull:
+                // If you picked a skull: You discard one of you discs, then restart the round. If you discarded your last disc, you are removed from the game and restart the round.
                 if (matDisc.classList.contains(SKULL)) {
-                    game.skullRevealed = true;
-                    challengeDisplayText.textContent = `${player.name} revealed a skull, he/she dies!`;
-                    player.discardRandomDisc();
+                    game.round.skullRevealed = true;
+                    headerDisplayText.textContent = `${clickingPlayer.name} revealed a skull, they lose a disc!`;
+                    clickingPlayer.discardRandomDisc();
                     // CHECK does he/she have discs
-                    if (!player.allDiscs.length){
+                    if (!clickingPlayer.allDiscs.length) {
                         // Player ran out of discs. Remove this player from the "players" list
-                        game.players.splice(player.number,1);
+                        clickingPlayer.ejected = true;
+                        game.round.players.splice(clickingPlayer.id, 1);
                     }
                     resetForNewRound();
+
                 } else if (matDisc.classList.contains(FLOWER)) {
 
-                    game.numFlowersRevealed++;
-                    if (game.numFlowersRevealed < game.challenge) {
-                        challengeDisplayText.textContent = `${player.name} revealed a flower! So far revealed ${game.numFlowersRevealed}/${game.challenge} flowers`;
-                    
+                    game.round.numFlowersRevealed++;
+                    if (game.round.numFlowersRevealed < game.round.challenge) {
+                        headerDisplayText.textContent = `${clickingPlayer.name} revealed a flower! So far revealed ${game.round.numFlowersRevealed}/${game.round.challenge} flowers`;
+
                     } else {
-                        
-                        if (player.matFlipped){
-                            challengeDisplayText.textContent = `${player.name} wins the game! Revealed ${game.numFlowersRevealed}/${game.challenge} flowers! and Flips his mat the second time!`;
+
+                        if (clickingPlayer.matFlipped) {
+                            headerDisplayText.textContent = `${clickingPlayer.name} wins the game! Revealed ${game.round.numFlowersRevealed}/${game.round.challenge} flowers! and Flips their mat the second time! Select new number of players!`;
+                            resetChooseNumPlayers();
                         } else {
-                            challengeDisplayText.textContent = `${player.name} wins! Revealed ${game.numFlowersRevealed}/${game.challenge} flowers! Flips his/her mat for the first time!`;
-                            player.matFlipped = 1;
+                            headerDisplayText.textContent = `${clickingPlayer.name} wins this round! Revealed ${game.round.numFlowersRevealed}/${game.round.challenge} flowers! Flips his/her mat for the first time!`;
+                            clickingPlayer.matFlipped = 1;
                             // re-set for new round
                             resetForNewRound();
                         }
@@ -442,124 +518,10 @@ function placePlayerIntoGameDisplay(player) {
 
 
     const playerHand = document.createElement("p");
-    playerHand.textContent = `Hand: ${player.getStringOfHand()}, Matt Flipped? ${player.matFlipped}`;
+    playerHand.textContent = `Hand: ${player.getStringOfHand()}, mat flipped? ${player.matFlipped}, ${player.allDiscs.length} discs left`;
     playerHand.classList.add("table-display-player-hand")
     tableDisplayPlayer.appendChild(playerHand);
 
 
 }
 
-function resetForNewRound(){
-    game.phase = phases.placingDiscs;
-    game.numFlowersRevealed = 0;
-    // FIX THIS
-    game.currentPlayerturn =  0;
-    game.numPlayers = game.players.length;
-    game.totalDiscsPlayed = 0;
-    game.challenge = 0;
-    game.challengePlayer = null;
-    game.numPlayersNotPassed = 0;
-    game.numFlowersRevealed = 0;
-    game.skullRevealed = false;
-    playersResetHand();
-    refreshGameDisplay();
-    setUpPlayerDisplay();
-}
-
-function playersResetHand(){
-    for (let i = 0; i < game.players.length; i++){
-        game.players[i].resetHand();
-        game.players[i].mat = [];
-        game.players[i].passed = false;
-        
-    }
-}
-
-function startGame() {
-    // Initializations: 
-    // game.numRemainingPlayers = game.numPlayers;
-
-    game.remainingPlayers = game.players;
-    // Play Rounds
-    while (!game.winner) {
-        // While there is not a winner, keep playing rounds. 
-
-        // game.numPlayersNotPassed = game.numPlayers;
-
-        while (game.phase === phase.placingDiscs) {
-            // Players place discs one by one
-            // Starting with the starting player, 
-
-            // For first {numRemainingPlayers} rounds, each person places a 
-            // single disc to start
-
-            // After returning to the start player once more, 
-            // They now have two options. Place another disc, or make a bid
-
-            // if they place a disc, increment to next player
-
-            // if they make a challenge, game.phase = phase.makingBids, challengePlayer = player, and it will exit the loop 
-        }
-
-        // Making a challenge phase:
-        while (game.phase === phase.challenge) {
-            // Players raise bids one by one
-
-            // Starting with the player after bidPlayer, can raise the bid.
-
-            //if they raise the challenge, player = challengePlayer, challenge increases
-
-            // if they do not raise the challenge, they pass. player.pass = true.
-            // 
-            // game.numRemainingPlayers--
-            // if (game.numRemainingPlayers === 0){
-            //    game.phase = phase.flippingCards; }
-        }
-
-
-        // Revealing Discs Phase
-        while (!game.skullRevealed) {
-
-            // Starting with the challenge player, they get to click on different
-            // players. 
-
-            game.numFlowersFlipped = 0;
-
-            // Flip a player's card
-
-            revealedDisc = flipPlayerDisc(player);
-
-            if (revealedDisc === "skull") {
-                game.skullRevealed = true;
-
-                // challenger loses a random disc
-                player.removeRandomDisc();
-
-                // if player has no cards left, 
-
-                // remove from game.activePlayers
-                // game.remainingPlayers 
-
-            } else {
-                game.numFlowersFlipped++;
-            }
-
-            if (game.numFlowersFlipped >= game.challenge) {
-                if (player.mat) { // Player's Mat was already flipped, he/she wins!
-                    game.winner = player;
-                } else {  // Player hadn't yet flipped her mat, flip now. 
-                    player.mat = 1;
-                }
-
-                break;
-            }
-
-            // Alright hersh, bonter... Oh i got it, I got it, Say what you WakeLockSentinel. 
-        }
-
-    }
-}
-
-
-
-// Main Code
