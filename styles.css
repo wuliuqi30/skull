@@ -7,7 +7,7 @@ The Name and Logo of the game
 Current count of how many discs are out.
 */
 .header{
-    height: 200px;
+    height: 10vh;
     background-color: antiquewhite;
 }
 
@@ -25,13 +25,13 @@ Current count of how many discs are out.
 
 /* Where all the player's discs and player mats will be displayed */
 .game-display{
-    height: 400px;
+    height: 60vh;
     background-color: rgb(223, 214, 203);
 }
 
 /* The secret contents of the player's hand*/
 .player-display-section{
-    height: 300px;
+    height: 30vh;
     background-color: rgb(142, 211, 128);
 }
 
@@ -76,6 +76,7 @@ Current count of how many discs are out.
     border-radius: 50%;
     width: var(--disc-diameter-player-display);
     height: var(--disc-diameter-player-display);
+    font-size: 3rem;
 }
 
 
@@ -86,17 +87,66 @@ Current count of how many discs are out.
 }
 
 
-
 .revealed {
-    border: 7px solid gold;
+    border: 2px solid gold;
 }
 
-.skull{
-    background-color: black;
-    color: yellow;
+
+
+.skull.revealed{
+    background-size: 80% 80%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-image:url("./pics/skull.svg");
 }
 
-.flower{
-    background-color: rgb(19, 204, 111);
-    color: rgb(151, 29, 155);
+.flower.revealed{
+    background-size: 80% 80%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-image:url("./pics/svgflower.svg");
+}
+
+
+.p0-disc{
+    background-color: #7c3aed;
+}
+.p0-disc.revealed{
+    background-color:#a78bfa;
+}
+
+
+.p1-disc{
+    background-color: #dc2626;
+}
+.p1-disc.revealed{
+    background-color: #f87171;
+}
+
+.p2-disc{
+    background-color: #ca8a04;
+}
+.p2-disc.revealed{
+    background-color:#facc15;
+}
+
+.p3-disc{
+    background-color:#65a30d;
+}
+.p3-disc.revealed{
+    background-color:#a3e635;
+}
+
+.p4-disc{
+    background-color:#0d9488;
+}
+.p4-disc.revealed{
+    background-color:#2dd4bf;
+}
+
+.p5-disc{
+    background-color:#57534e;
+}
+.p5-disc.revealed{
+    background-color:#a3a3a3;
 }

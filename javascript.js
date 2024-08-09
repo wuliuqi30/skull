@@ -62,6 +62,7 @@ function Disc(type, id) {
     // type is skull or flower
     this.type = type;
     this.id = id; // the "id" here will correspond to the DOM element's "value"
+    this.faceUp = false;
     if (type === SKULL) {
         this.letter = "S";
     } else {
@@ -233,8 +234,7 @@ function loadPlayerControls(pId) {
     playerDisplayDOM.classList.add("player-display");
     for (i = 0; i < player.hand.length; i++) {
         const discDOM = document.createElement("button");
-        discDOM.classList.add("disc", player.hand[i].type);
-        discDOM.textContent = player.hand[i].type;
+        discDOM.classList.add("disc", player.hand[i].type, `p${pId}-disc`, 'revealed');
         discDOM.setAttribute("value", player.hand[i].id);
         if (game.round.phase === phases.placingDiscs) {
             discDOM.addEventListener("click", () => {
@@ -438,8 +438,8 @@ function placePlayerIntoGameDisplay(player) {
     // Stack the discs:
     for (let d = 0; d < player.mat.length; d++) {
         const matDisc = document.createElement("button");
-        matDisc.classList.add("disc", player.mat[d].type);
-        matDisc.textContent = player.mat[d].type;
+        matDisc.classList.add("disc", player.mat[d].type,`p${player.id}-disc`);
+        //matDisc.textContent = player.mat[d].type;
         playerMat.appendChild(matDisc);
 
         const discSize = matDisc.offsetWidth;
@@ -475,11 +475,14 @@ function placePlayerIntoGameDisplay(player) {
 
 
                 matDisc.classList.add("revealed");
+                
 
                 // If you picked a skull: You discard one of you discs, then restart the round. If you discarded your last disc, you are removed from the game and restart the round.
                 if (matDisc.classList.contains(SKULL)) {
+                    
                     game.round.skullRevealed = true;
                     headerDisplayText.textContent = `${clickingPlayer.name} revealed a skull, they lose a disc!`;
+                    alert("Revealed a skull!");
                     clickingPlayer.discardRandomDisc();
                     // CHECK does he/she have discs
                     if (!clickingPlayer.allDiscs.length) {

@@ -1,0 +1,41 @@
+
+player array: array of all player objects
+game info: an object with overall game conditions, score tracker, etc.
+disc: a disc object.
+
+player display: displays current player on his turn
+game display: For now, displays al the players, their discs in their hands, and their mats. 
+the mat is just a stirng: "FFS": Left most is bottom most, right most is top.F = flower, s= skull.
+
+
+Header section has a dropdown for number of players. tehna  start button
+
+Plan: 
+
+Initialize the main screen.
+
+Header section has a dropdown for number of players. tehna  start button
+
+intialize all the players and their hands.
+
+choosefirst player functoin = returns 0 for now.
+
+
+Then display the first player and all his discs on the bottom based on the player's information in the 
+player array.
+
+durring the place discs phase, the player's discs will be crated in a grid,
+event listner: 
+
+1 puts the disc on the mat (the mat is just going to be a text box in the game display)
+- adjust player's hand and mat fields
+
+Place bid button: Dropdown, from numdiscs on current mat + 1 to max discs. Place bid?
+- move to the next player's turn, setupPlayerDisplay
+
+if ( gaem phase === making bids), you see the hand but there aren't buttons, the discs are disabled. 
+make a pass button and a raise bid button, from bid + 1 to max,. 
+raise bid buttoN: change bid to the new bid and move to next player
+
+
+at the end of the turn, update hte game display and change the player display
