@@ -27,8 +27,29 @@ Current count of how many discs are out.
 .game-display{
     height: 60vh;
     background-color: rgb(223, 214, 203);
+    border: 1px solid black;
+    
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
+.game-table{
+    background-color: rgb(144, 195, 155);
+    width: 500px;
+    height: 500px;
+    margin: auto;
+    position: relative;
+    border: 1px solid red;
+    border-radius: 50%;
+}
+
+.player-location-circle{
+    border: 3px solid rgb(0, 0, 0);
+    border-radius: 50%;
+    position: relative;
+
+}
 /* The secret contents of the player's hand*/
 .player-display-section{
     height: 30vh;
@@ -54,17 +75,23 @@ Current count of how many discs are out.
 
 .table-display-player{
     display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     gap: 10px;
+    position: absolute;
+    width: 100px;
+    border: 1px solid black;
+    height: 120px;
 }
 
-.table-display-player-name{
-    
-}
+
 
 .table-display-player-mat{
     position:relative;
     border: 1px solid rgb(182, 126, 22);
-    width: 200px;
+    width: 50px;
+    height: 60px;
 }
 
 .table-display-player-hand{

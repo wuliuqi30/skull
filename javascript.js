@@ -21,6 +21,7 @@ let game = {
 }
 
 
+
 function Round() {
     this.numPlayers = 0;
     this.players = [];
@@ -47,7 +48,7 @@ function Round() {
             this.players[i].resetHand();
             this.players[i].mat = [];
             this.players[i].pass = false;
-            
+
         }
     }
     this.resetTurnList = function () {
@@ -116,7 +117,7 @@ function getRandomInteger(n) {
 function chooseFirstPlayerId(n) {
     // Choose first player code here: 
     // return game.round.players[getRandomInteger(n)].id;
-    // HARD CODE TO 0 for now
+    // HARD CODE TO 2 for now
     return game.round.players[2].id;
 
 }
@@ -129,15 +130,9 @@ function placeCardOnMat(player, card) {
 
 
 
-
-// Card: 
-//   fields: 
-//     type: "skull" or "flower"
-
-
 const body = document.querySelector('body');
 const header = document.querySelector('.header');
-const gameDisplay = document.querySelector('.game-display');
+const gameDisplay = document.querySelector('.game-table');
 const playerDisplaySection = document.querySelector('.player-display-section');
 
 // Set up the header: 
@@ -150,15 +145,17 @@ numPlayersSelect.addEventListener("click", (event) => {
 
 function resetChooseNumPlayers() {
     numPlayersSelect.disabled = false;
-    
+
 }
+
+
 
 
 function initializeGame(numPlayers) {
 
     const headerDisplayText = document.getElementById("headerDisplayText");
     headerDisplayText.textContent = '';
-    
+
     // Create the players and put them in the game object
     game.numPlayers = numPlayers;
 
@@ -386,16 +383,35 @@ function refreshGameDisplay() {
     // Delete the current contents of the game display and reset: 
     deleteGameDisplay();
 
+    
     // Put each player's mat contents on to the middle display area. 
     // [Player Name] [Player Mat] [text box of cards in hand]
     // But only if that player has discs left in their hand.
+    // temp calculations:
+    let gameHeight = gameDisplay.offsetHeight;
+    let gameWidth = gameDisplay.offsetWidth;
+    let tableRad = gameHeight / 2 * 0.7;
+
+    const centeringCircle = document.createElement("div");
+    centeringCircle.classList.add("player-location-circle");
+    gameDisplay.appendChild(centeringCircle);
+    centeringCircle.style.top = `${gameHeight / 2 - tableRad}px`;
+    centeringCircle.style.left = `${gameWidth / 2 - tableRad}px`;
+    centeringCircle.style.width = `${tableRad * 2}px`;
+    centeringCircle.style.height = `${tableRad * 2}px`;
+
+    let playerDisplayHeight = 120;
+    let playerDisplayWidth = 100;
+
+    let playerTablePositions = getPlayerMatPositions(game.round.numPlayers, playerDisplayHeight, playerDisplayWidth, gameHeight, gameWidth, tableRad, tableRad);
+
 
     for (let i = 0; i < game.round.numPlayers; i++) {
         let displayPlayer = game.round.players[i];
 
         if (displayPlayer.hand) {
             // If hand is not empty:
-            placePlayerIntoGameDisplay(game.round.players[i]);
+            placePlayerIntoGameDisplay(game.round.players[i],playerTablePositions[i].x, playerTablePositions[i].y);
         }
     }
 }
@@ -416,11 +432,66 @@ function deleteHeader() {
     }
 }
 
-function placePlayerIntoGameDisplay(player) {
+class Position {
+
+    #x;
+    #y;
+
+    constructor(x, y) {
+        this.#x = x;
+        this.#y = y;
+    }
+
+    get x() {
+        return this.#x;
+    }
+
+    set x(val) {
+        this.#x = val;
+    }
+
+    get y() {
+        return this.#y;
+    }
+
+    set y(val) {
+        this.#y = val;
+    }
+
+    static addVectors(pos1, pos2) {
+        return new Position(pos1.x + pos2.x, pos1.y + pos2.y);
+    }
+}
+
+function getPlayerMatPositions(n, matHeight, matWidth, tableHeight, tableWidth, radiusy, radiusx) {
+    // given n players, return their respective relative x,y locations on an imaginary elliptical table of radius ry,rx in a box of height height and width
+
+    // The first player is always at the bottom of the circle:
+    // down = top = x, to the right = left = y
+    const origin = new Position(tableHeight / 2, tableWidth / 2  )
+
+    let angleDivision = 360 / n; 
+    let anglesRad;
+    let relPosition;
+    let positions = [];
+
+    for (let i = 0; i < n; i ++){
+        anglesRad = (i * angleDivision) * Math.PI / 180;
+        relPosition = new Position(radiusy * Math.cos(anglesRad)- matHeight / 2, radiusx * Math.sin(anglesRad)- matWidth / 2 );
+        positions[i] = Position.addVectors(origin, relPosition)
+    }
+
+
+    return positions;
+
+}
+
+function placePlayerIntoGameDisplay(player,top,left) {
     const tableDisplayPlayer = document.createElement("div");
     tableDisplayPlayer.classList.add("table-display-player");
     tableDisplayPlayer.setAttribute("id", `p${player.id}`);
     gameDisplay.appendChild(tableDisplayPlayer);
+
 
     const playerName = document.createElement("p");
     playerName.textContent = player.name;
@@ -438,7 +509,7 @@ function placePlayerIntoGameDisplay(player) {
     // Stack the discs:
     for (let d = 0; d < player.mat.length; d++) {
         const matDisc = document.createElement("button");
-        matDisc.classList.add("disc", player.mat[d].type,`p${player.id}-disc`);
+        matDisc.classList.add("disc", player.mat[d].type, `p${player.id}-disc`);
         //matDisc.textContent = player.mat[d].type;
         playerMat.appendChild(matDisc);
 
@@ -475,11 +546,11 @@ function placePlayerIntoGameDisplay(player) {
 
 
                 matDisc.classList.add("revealed");
-                
+
 
                 // If you picked a skull: You discard one of you discs, then restart the round. If you discarded your last disc, you are removed from the game and restart the round.
                 if (matDisc.classList.contains(SKULL)) {
-                    
+
                     game.round.skullRevealed = true;
                     headerDisplayText.textContent = `${clickingPlayer.name} revealed a skull, they lose a disc!`;
                     alert("Revealed a skull!");
@@ -519,11 +590,17 @@ function placePlayerIntoGameDisplay(player) {
         })
     }
 
+    // UNCOMMENT LATER?
+    // const playerHand = document.createElement("p");
+    // playerHand.textContent = `${player.getStringOfHand()}, mat ${player.matFlipped}, ${player.allDiscs.length} discs`;
+    // playerHand.classList.add("table-display-player-hand")
+    // tableDisplayPlayer.appendChild(playerHand);
 
-    const playerHand = document.createElement("p");
-    playerHand.textContent = `Hand: ${player.getStringOfHand()}, mat flipped? ${player.matFlipped}, ${player.allDiscs.length} discs left`;
-    playerHand.classList.add("table-display-player-hand")
-    tableDisplayPlayer.appendChild(playerHand);
+
+
+    tableDisplayPlayer.style.top = `${top}px`;
+    tableDisplayPlayer.style.left = `${left}px`;
+
 
 
 }
