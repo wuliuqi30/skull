@@ -45,7 +45,7 @@ Current count of how many discs are out.
 }
 
 .player-location-circle{
-    border: 3px solid rgb(0, 0, 0);
+
     border-radius: 50%;
     position: relative;
 
@@ -54,17 +54,26 @@ Current count of how many discs are out.
 .player-display-section{
     height: 30vh;
     background-color: rgb(142, 211, 128);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
 }
 
 .player-display{
     display: grid;
- 
+    margin: auto;
     grid-auto-flow: column;
     grid-auto-columns: var(--disc-diameter-player-display);
     grid-template-rows: auto;
     gap: 0px;
-    width: 60%;
+    
 }    
+
+.player-title{
+    font-size: 2rem;
+    padding: 20px;
+}
 
 .passButton{
     width: 100px;
@@ -81,7 +90,7 @@ Current count of how many discs are out.
     gap: 10px;
     position: absolute;
     width: 100px;
-    border: 1px solid black;
+   
     height: 120px;
 }
 

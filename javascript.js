@@ -1,113 +1,19 @@
+import {SKULL, FLOWER, phases} from "./js-classes/constants.js";
+import { Round } from "./js-classes/round.js";
+import { Disc } from "./js-classes/disc.js";
+import {Position} from "./js-classes/position.js";
+import { getPlayerMatPositions } from "./utils/useful-functions.js";
+import { Player } from "./js-classes/player.js";
 
-const SKULL = 'skull';
-const FLOWER = 'flower';
 
 
-// Objects: 
 
-const phases = {
-    placingDiscs: "placingDiscs",
-    makingBids: "makingBids",
-    executingChallenge: "executingChallenge"
-};
-
-// Game: Represents the overall game
-//  players: a list of player objects representing the players
-//  turn: which player whose turn it is.
 let game = {
     allPlayers: [],  // an array of all the player objects. Players are never removed from this. If a player loses all his discs, merely properties on the player object are altered. 
     numPlayers: 0,
     round: null,
 }
 
-
-
-function Round() {
-    this.numPlayers = 0;
-    this.players = [];
-    this.playerTurnList = []; // an array holding the player IDs of all the players in this round, in ascedning order. Could be 1, 4, 5 if players 2 and 3 were eliminated.
-    this.currentPlayerTurnId = 0;  // the player ID of the current player whose turn it is/will be next.
-    this.currentPlayerTurnCounter = 0; // always goes from 0 to numplayers - 1
-    this.totalDiscsPlayed = 0; // total number of turns taken so far
-    this.phase = "placingDiscs";
-    this.challenge = 0;  // Current bid. Number of flowers the challenger says they can flip
-    this.challengePlayer = null; // Current player with the bid
-
-    this.numPlayersNotPassed = 0; // Number of players who HAVE NOT passed and still in the round
-
-    this.numFlowersRevealed = 0; // Number of flowers the challenger has validly flipped over
-    this.skullRevealed = false;
-    this.winner = null;
-    this.incrementTurn = function () {
-        this.currentPlayerTurnCounter = (this.currentPlayerTurnCounter + 1) % this.numPlayers;
-        this.currentPlayerTurnId = this.playerTurnList[this.currentPlayerTurnCounter];
-        return this.currentPlayerTurnId;
-    };
-    this.resetPlayers = function () {
-        for (let i = 0; i < this.players.length; i++) {
-            this.players[i].resetHand();
-            this.players[i].mat = [];
-            this.players[i].pass = false;
-
-        }
-    }
-    this.resetTurnList = function () {
-        for (let p = 0; p < this.numPlayers; p++) {
-            this.playerTurnList[p] = this.players[p].id;
-        }
-    }
-}
-
-
-function Disc(type, id) {
-    // type is skull or flower
-    this.type = type;
-    this.id = id; // the "id" here will correspond to the DOM element's "value"
-    this.faceUp = false;
-    if (type === SKULL) {
-        this.letter = "S";
-    } else {
-        this.letter = "F"
-    };
-}
-
-
-function Player(id, name, design) {
-    this.id = id;
-    this.name = name;
-    this.design = design;
-    this.hand = [];
-    this.allDiscs = [];
-    this.mat = [];
-    this.matFlipped = 0;
-    this.pass = false;
-    this.numOwnDiscsRevealed = 0;
-    this.revealedAllOwnDiscs = false;
-    this.ejected = false; // Player has been ejected from the game from running out of discs
-    this.initializeAllDiscs = function () {
-        for (let i = 0; i <= 2; i++) {
-            let disc = new Disc(FLOWER, i);
-            this.allDiscs.push(disc);
-        }
-        let disc = new Disc(SKULL, 3);
-        this.allDiscs.push(disc);
-        this.resetHand();
-    }
-    this.resetHand = function () {
-        this.hand = [...this.allDiscs];
-    }
-    this.discardRandomDisc = function () {
-        let randomIndex = getRandomInteger(this.allDiscs.length);
-        this.allDiscs.splice(randomIndex, 1);
-    }
-    this.getStringOfHand = function () {
-        let stringOut = ''
-        for (let i = 0; i < this.hand.length; i++) {
-            stringOut += this.hand[i].letter;
-        }
-        return stringOut;
-    }
-}
 
 function getRandomInteger(n) {
     // get random integer from 0 to n-1
@@ -121,12 +27,6 @@ function chooseFirstPlayerId(n) {
     return game.round.players[2].id;
 
 }
-
-function placeCardOnMat(player, card) {
-    // remove the card from player's hand array  and put on the mat array of the player
-    // if the card doesn't exist in the player's hand, return 0, if it does, return 1
-}
-
 
 
 
@@ -142,6 +42,7 @@ numPlayersSelect.addEventListener("click", (event) => {
     initializeGame(numPlayersSelect.value);
     numPlayersSelect.disabled = true;
 });
+
 
 function resetChooseNumPlayers() {
     numPlayersSelect.disabled = false;
@@ -227,9 +128,10 @@ function loadPlayerControls(pId) {
     // Based on the discs the player currently has, create
     // the DOM elements and place them in the player screen.
     playerDisplaySection.textContent = player.name;
+    playerDisplaySection.classList.add("player-title");
     const playerDisplayDOM = document.createElement("div");
     playerDisplayDOM.classList.add("player-display");
-    for (i = 0; i < player.hand.length; i++) {
+    for (let i = 0; i < player.hand.length; i++) {
         const discDOM = document.createElement("button");
         discDOM.classList.add("disc", player.hand[i].type, `p${pId}-disc`, 'revealed');
         discDOM.setAttribute("value", player.hand[i].id);
@@ -432,59 +334,9 @@ function deleteHeader() {
     }
 }
 
-class Position {
-
-    #x;
-    #y;
-
-    constructor(x, y) {
-        this.#x = x;
-        this.#y = y;
-    }
-
-    get x() {
-        return this.#x;
-    }
-
-    set x(val) {
-        this.#x = val;
-    }
-
-    get y() {
-        return this.#y;
-    }
-
-    set y(val) {
-        this.#y = val;
-    }
-
-    static addVectors(pos1, pos2) {
-        return new Position(pos1.x + pos2.x, pos1.y + pos2.y);
-    }
-}
-
-function getPlayerMatPositions(n, matHeight, matWidth, tableHeight, tableWidth, radiusy, radiusx) {
-    // given n players, return their respective relative x,y locations on an imaginary elliptical table of radius ry,rx in a box of height height and width
-
-    // The first player is always at the bottom of the circle:
-    // down = top = x, to the right = left = y
-    const origin = new Position(tableHeight / 2, tableWidth / 2  )
-
-    let angleDivision = 360 / n; 
-    let anglesRad;
-    let relPosition;
-    let positions = [];
-
-    for (let i = 0; i < n; i ++){
-        anglesRad = (i * angleDivision) * Math.PI / 180;
-        relPosition = new Position(radiusy * Math.cos(anglesRad)- matHeight / 2, radiusx * Math.sin(anglesRad)- matWidth / 2 );
-        positions[i] = Position.addVectors(origin, relPosition)
-    }
 
 
-    return positions;
 
-}
 
 function placePlayerIntoGameDisplay(player,top,left) {
     const tableDisplayPlayer = document.createElement("div");
@@ -515,10 +367,10 @@ function placePlayerIntoGameDisplay(player,top,left) {
 
         const discSize = matDisc.offsetWidth;
         //Place discs on mat
-        const discOverlap = 0.5;
+        const discOverlap = 0.2;
         matDisc.style.position = "absolute";
         matDisc.setAttribute("value", player.id);
-        matDisc.style.left = `${(d * discOverlap * discSize)}px`;
+        matDisc.style.bottom = `${(d * discOverlap * discSize)}px`;
 
         // Put event listeners on these discs but they'll do nothing until the final stage: 
 
